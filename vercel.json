@@ -5,8 +5,7 @@
             "src": "api/extract.py",
             "use": "@vercel/python",
             "config": {
-                "maxLambdaSize": "15mb",
-                "runtime": "python3.9"
+                "maxLambdaSize": "15mb"
             }
         }
     ],
@@ -15,5 +14,8 @@
             "src": "/(.*)",
             "dest": "api/extract.py"
         }
-    ]
+    ],
+    "env": {
+        "PYTHON_VERSION": "3.9"
+    }
 } 

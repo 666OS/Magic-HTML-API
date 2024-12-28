@@ -1,5 +1,5 @@
 fastapi==0.104.1
 httpx==0.25.2
 uvicorn==0.24.0
-https://files.pythonhosted.org/packages/c9/c2/c184ee33e2ddce0f6e8481d334a43e0f2a493f789824f4c8df77d61cad4d/cchardet-2.1.7-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+chardet==5.2.0
 ./wheels/magic_html-0.1.2-py3-none-any.whl

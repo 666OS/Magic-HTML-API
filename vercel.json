@@ -3,9 +3,10 @@
     "builds": [
         {
             "src": "api/extract.py",
-            "use": "@vercel/python",
+            "use": "@vercel/python@3.1.0",
             "config": {
-                "maxLambdaSize": "15mb"
+                "maxLambdaSize": "15mb",
+                "pythonVersion": "3.9"
             }
         }
     ],
@@ -14,8 +15,5 @@
             "src": "/(.*)",
             "dest": "api/extract.py"
         }
-    ],
-    "env": {
-        "PYTHON_VERSION": "3.9"
-    }
+    ]
 } 

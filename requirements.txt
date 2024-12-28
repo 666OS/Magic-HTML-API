@@ -1,5 +1,4 @@
 fastapi==0.104.1
 httpx==0.25.2
 uvicorn==0.24.0
-chardet==5.2.0
 ./wheels/magic_html-0.1.2-py3-none-any.whl

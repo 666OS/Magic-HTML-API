@@ -1,0 +1,19 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/extract.py",
+            "use": "@vercel/python",
+            "config": {
+                "buildCommand": "bash ./build.sh",
+                "maxLambdaSize": "15mb"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "api/extract.py"
+        }
+    ]
+} 

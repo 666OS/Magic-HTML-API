@@ -5,7 +5,7 @@
             "src": "api/extract.py",
             "use": "@vercel/python",
             "config": {
-                "buildCommand": "bash ./build.sh",
+                "installCommand": "pip install --upgrade pip && pip install fastapi==0.104.1 httpx==0.25.2 uvicorn==0.24.0 && pip install --no-cache-dir https://github.com/opendatalab/magic-html/releases/download/magic_html-0.1.2-released/magic_html-0.1.2-py3-none-any.whl",
                 "maxLambdaSize": "15mb"
             }
         }

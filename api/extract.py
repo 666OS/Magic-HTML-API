@@ -42,6 +42,20 @@ def convert_content(html: str, output_format: str) -> str:
     else:
         return html
 
+def extract_html_content(data: dict) -> str:
+    """
+    从magic_html返回的数据中提取HTML内容
+    
+    Args:
+        data: magic_html返回的数据
+        
+    Returns:
+        HTML内容
+    """
+    if isinstance(data, dict):
+        return data.get('html', '')
+    return ''
+
 @app.get("/api/extract")
 async def extract_content(
     url: str, 
@@ -63,15 +77,11 @@ async def extract_content(
         html = await fetch_url(url)
         extracted_data = extractor.extract(html, base_url=url, html_type=html_type)
         
-        # 确保提取的内容是字符串
-        if not isinstance(extracted_data, str):
-            if hasattr(extracted_data, 'content'):
-                extracted_data = extracted_data.content
-            else:
-                extracted_data = str(extracted_data)
+        # 从返回数据中提取HTML内容
+        html_content = extract_html_content(extracted_data)
         
         # 转换内容格式
-        converted_content = convert_content(extracted_data, output_format)
+        converted_content = convert_content(html_content, output_format)
         
         return {
             "url": url,

@@ -6,6 +6,7 @@ import json
 from markdownify import markdownify as md
 from bs4 import BeautifulSoup
 import re
+import chardet
 
 app = FastAPI()
 extractor = GeneralExtractor()
@@ -15,7 +16,21 @@ async def fetch_url(url: str) -> str:
         try:
             response = await client.get(url)
             response.raise_for_status()
-            return response.text
+            
+            # 获取响应的二进制内容
+            content = response.content
+            
+            # 检测编码
+            detected = chardet.detect(content)
+            encoding = detected['encoding']
+            
+            # 如果是GB2312，使用GB18030来解码(GB18030是GB2312的超集)
+            if encoding and encoding.lower() in ['gb2312', 'gbk']:
+                encoding = 'gb18030'
+            
+            # 使用检测到的编码解码内容
+            return content.decode(encoding or 'utf-8')
+            
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error fetching URL: {str(e)}")
 

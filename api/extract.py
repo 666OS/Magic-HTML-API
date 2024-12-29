@@ -29,6 +29,9 @@ def convert_content(html: str, output_format: str) -> str:
     Returns:
         转换后的内容
     """
+    if not isinstance(html, str):
+        html = str(html)
+        
     if output_format == "html":
         return html
     elif output_format == "markdown":
@@ -58,10 +61,17 @@ async def extract_content(
     """
     try:
         html = await fetch_url(url)
-        data = extractor.extract(html, base_url=url, html_type=html_type)
+        extracted_data = extractor.extract(html, base_url=url, html_type=html_type)
+        
+        # 确保提取的内容是字符串
+        if not isinstance(extracted_data, str):
+            if hasattr(extracted_data, 'content'):
+                extracted_data = extracted_data.content
+            else:
+                extracted_data = str(extracted_data)
         
         # 转换内容格式
-        converted_content = convert_content(data, output_format)
+        converted_content = convert_content(extracted_data, output_format)
         
         return {
             "url": url,

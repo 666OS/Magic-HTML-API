@@ -171,6 +171,136 @@ def detect_html_type(html: str, url: str) -> str:
     # 默认为文章类型
     return 'article'
 
+# 添加知乎专用的提取函数
+def extract_zhihu_content(html: str, url: str) -> str:
+    """
+    提取知乎页面的内容
+    
+    Args:
+        html: 页面HTML内容
+        url: 页面URL
+        
+    Returns:
+        提取的内容
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    content = ""
+    
+    # 提取问题标题
+    title = None
+    title_meta = soup.find('meta', {'itemprop': 'name'})
+    if title_meta:
+        title = title_meta.get('content')
+    
+    if not title:
+        title_elem = soup.select_one('.QuestionHeader-title')
+        if title_elem:
+            title = title_elem.text.strip()
+    
+    if title:
+        content += f"# {title}\n\n"
+    
+    # 提取回答内容
+    answer = None
+    
+    # 尝试提取回答内容
+    answer_item = soup.select_one('.AnswerItem, .Post-RichText, .ztext')  # 添加更多选择器
+    if answer_item:
+        # 提取作者信息
+        author_info = answer_item.select_one('.AuthorInfo-content')
+        if author_info:
+            author_link = author_info.select_one('.UserLink-link')
+            if author_link:
+                author_name = author_link.text.strip()
+                content += f"作者：{author_name}\n\n"
+        
+        # 提取回答正文
+        answer_content = answer_item.select_one('.RichText, .RichContent-inner')  # 添加更多选择器
+        if answer_content:
+            # 处理数学公式
+            for formula in answer_content.select('.ztext-math'):
+                latex = formula.get('text', '')
+                if latex:
+                    formula.replace_with(f'$${latex}$$')
+            
+            # 处理代码块
+            for code in answer_content.select('pre'):
+                lang = code.get('class', [''])[0].replace('language-', '') if code.get('class') else ''
+                code_text = code.text.strip()
+                code.replace_with(f'\n```{lang}\n{code_text}\n```\n')
+            
+            # 处理行内代码
+            for code in answer_content.select('code'):
+                if not code.parent.name == 'pre':  # 避免重复处理代码块中的code标签
+                    code.replace_with(f'`{code.text.strip()}`')
+            
+            # 处理表格
+            for table in answer_content.select('table'):
+                md_table = '\n|'
+                # 处理表头
+                headers = table.select('th')
+                if headers:
+                    md_table += '|'.join(th.text.strip() for th in headers) + '|\n|'
+                    md_table += '|'.join(['---'] * len(headers)) + '|\n'
+                
+                # 处理表格内容
+                for row in table.select('tr'):
+                    cells = row.select('td')
+                    if cells:
+                        md_table += '|'.join(td.text.strip() for td in cells) + '|\n'
+                table.replace_with(md_table)
+            
+            # 处理图片 (优化处理)
+            for img in answer_content.find_all('img'):
+                src = img.get('src', '')
+                alt = img.get('alt', '图片')
+                if src:
+                    if not alt or alt == '图片':
+                        # 尝试获取图片说明
+                        fig_caption = img.find_next('figcaption')
+                        if fig_caption:
+                            alt = fig_caption.text.strip()
+                    img.replace_with(f'\n![{alt}]({src})\n')
+            
+            # 处理链接 (优化处理)
+            for a in answer_content.find_all('a'):
+                href = a.get('href', '')
+                if href.startswith(('http://link.zhihu.com', 'https://link.zhihu.com')):
+                    try:
+                        parsed = httpx.URL(href)
+                        target = parsed.params.get(b'target', b'').decode('utf-8')
+                        if target:
+                            href = target
+                    except:
+                        pass
+                text = a.text.strip() or href
+                a.replace_with(f'[{text}]({href})')
+            
+            # 处理引用
+            for blockquote in answer_content.select('blockquote'):
+                quote_text = blockquote.get_text('\n', strip=True)
+                blockquote.replace_with(f'\n> {quote_text.replace("\n", "\n> ")}\n')
+            
+            # 处理列表
+            for ul in answer_content.select('ul'):
+                for li in ul.select('li'):
+                    li_text = li.get_text(strip=True)
+                    li.replace_with(f'- {li_text}\n')
+            
+            for ol in answer_content.select('ol'):
+                for i, li in enumerate(ol.select('li'), 1):
+                    li_text = li.get_text(strip=True)
+                    li.replace_with(f'{i}. {li_text}\n')
+            
+            content += answer_content.get_text('\n', strip=True)
+    
+    # 清理内容
+    content = re.sub(r'\n{3,}', '\n\n', content)  # 移除多余的空行
+    content = re.sub(r' {2,}', ' ', content)      # 移除多余的空格
+    
+    return content.strip()
+
+# 修改extract_content函数，添加知乎处理
 @app.get("/api/extract")
 async def extract_content(
     url: str, 
@@ -189,22 +319,42 @@ async def extract_content(
     try:
         html = await fetch_url(url)
         
-        # 自动检测HTML类型
+        # 检测是否是知乎页面
+        if 'zhihu.com' in url:
+            # 使用知乎专用提取器
+            content = extract_zhihu_content(html, url)
+            # 根据需要的格式返回
+            if output_format == "markdown":
+                return {
+                    "url": url,
+                    "content": content,
+                    "format": output_format,
+                    "type": "zhihu",
+                    "success": True
+                }
+            elif output_format == "text":
+                # 移除markdown标记
+                text = re.sub(r'!\[.*?\]\(.*?\)', '[图片]', content)
+                text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+                return {
+                    "url": url,
+                    "content": text,
+                    "format": output_format,
+                    "type": "zhihu",
+                    "success": True
+                }
+        
+        # 非知乎页面使用原有逻辑
         html_type = detect_html_type(html, url)
-        
         extracted_data = extractor.extract(html, base_url=url, html_type=html_type)
-        
-        # 从返回数据中提取HTML内容
         html_content = extract_html_content(extracted_data)
-        
-        # 转换内容格式
         converted_content = convert_content(html_content, output_format)
         
         return {
             "url": url,
             "content": converted_content,
             "format": output_format,
-            "type": html_type,  # 返回检测到的类型
+            "type": html_type,
             "success": True
         }
         

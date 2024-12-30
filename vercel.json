@@ -6,14 +6,37 @@
             "use": "@vercel/python",
             "config": {
                 "maxLambdaSize": "15mb",
-                "runtime": "python3.9"
+                "runtime": "python3.9",
+                "includedFiles": ["wheels/**"]
             }
+        },
+        {
+            "src": "package.json",
+            "use": "@vercel/next"
         }
     ],
     "routes": [
         {
-            "src": "/(.*)",
+            "src": "/api/extract",
+            "dest": "api/extract.py",
+            "methods": ["GET"],
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Cache-Control": "no-cache, no-store, must-revalidate"
+            }
+        },
+        {
+            "src": "/api/(.*)",
             "dest": "api/extract.py"
+        },
+        {
+            "handle": "filesystem"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/"
         }
     ]
 } 

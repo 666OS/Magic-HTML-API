@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 import httpx
 from magic_html import GeneralExtractor
 from typing import Optional, Literal
-import json
 from markdownify import markdownify as md
 from bs4 import BeautifulSoup
 import re
@@ -140,8 +139,4 @@ async def extract_content(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to magic-html extractor API"} 
+        raise HTTPException(status_code=500, detail=str(e)) 

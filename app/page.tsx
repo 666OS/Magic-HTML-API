@@ -274,7 +274,7 @@ export default function Home() {
                     <h3 className="text-xl font-semibold text-gray-900">提取结果</h3>
                     {result.type && (
                       <p className="text-sm text-gray-500 mt-1">
-                        检测类型：{result.type === 'article' ? '文章' : result.type === 'forum' ? '论坛' : '微信'}
+                        检测类型：{getTypeText(result.type)} {getTypeIcon(result.type)}
                       </p>
                     )}
                   </div>

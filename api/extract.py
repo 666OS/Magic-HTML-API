@@ -104,10 +104,49 @@ def extract_html_content(data: dict) -> str:
         return data.get('html', '')
     return ''
 
+def detect_html_type(html: str, url: str) -> str:
+    """
+    自动检测HTML类型
+    
+    Args:
+        html: HTML内容
+        url: 页面URL
+        
+    Returns:
+        检测到的类型 ("article", "forum", "weixin")
+    """
+    # 检查URL特征
+    url_lower = url.lower()
+    if any(domain in url_lower for domain in ['mp.weixin.qq.com', 'weixin.qq.com']):
+        return 'weixin'
+    
+    # 检查HTML特征
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # 论坛特征检测
+    forum_indicators = [
+        'forum', 'topic', 'thread', 'post', 'reply', 'comment', 'discuss',
+        '论坛', '帖子', '回复', '评论', '讨论'
+    ]
+    
+    # 检查类名和ID
+    classes_and_ids = []
+    for element in soup.find_all(class_=True):
+        classes_and_ids.extend(element.get('class', []))
+    for element in soup.find_all(id=True):
+        classes_and_ids.append(element.get('id', ''))
+    
+    classes_and_ids = ' '.join(classes_and_ids).lower()
+    
+    if any(indicator in classes_and_ids for indicator in forum_indicators):
+        return 'forum'
+    
+    # 默认为文章类型
+    return 'article'
+
 @app.get("/api/extract")
 async def extract_content(
     url: str, 
-    html_type: Optional[str] = "article",
     output_format: Optional[Literal["html", "markdown", "text"]] = "text"
 ):
     """
@@ -115,7 +154,6 @@ async def extract_content(
     
     Args:
         url: 目标网页URL
-        html_type: HTML内容类型 ("article", "forum", "weixin")
         output_format: 输出格式 ("html", "markdown", "text")，默认为text
     
     Returns:
@@ -123,6 +161,10 @@ async def extract_content(
     """
     try:
         html = await fetch_url(url)
+        
+        # 自动检测HTML类型
+        html_type = detect_html_type(html, url)
+        
         extracted_data = extractor.extract(html, base_url=url, html_type=html_type)
         
         # 从返回数据中提取HTML内容
@@ -135,6 +177,7 @@ async def extract_content(
             "url": url,
             "content": converted_content,
             "format": output_format,
+            "type": html_type,  # 返回检测到的类型
             "success": True
         }
         

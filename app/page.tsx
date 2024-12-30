@@ -120,8 +120,8 @@ export default function Home() {
               智能网页内容提取
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              使用智能算法提取网页的核心内容，支持文章、论坛和微信等多种类型，
-              让内容获取更加便捷。
+              使用智能算法自动识别网页类型并提取核心内容，
+              支持文章、论坛和微信等多种类型。
             </p>
           </div>
 
@@ -133,7 +133,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">智能内容提取</h3>
               <p className="text-gray-600">
-                自动识别网页主要内容，支持文章、论坛和微信等多种类型，
+                自动识别网页类型和主要内容，
                 智能去除干扰元素。
               </p>
             </div>
@@ -238,7 +238,14 @@ export default function Home() {
             {result && (
               <div className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8 space-y-6">
                 <div className="flex items-center justify-between gap-4">
-                  <h3 className="text-xl font-semibold text-gray-900">提取结果</h3>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">提取结果</h3>
+                    {result.type && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        检测类型：{result.type === 'article' ? '文章' : result.type === 'forum' ? '论坛' : '微信'}
+                      </p>
+                    )}
+                  </div>
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-blue-600 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors"

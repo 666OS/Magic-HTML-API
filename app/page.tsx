@@ -14,6 +14,8 @@ interface ResultCache {
   };
 }
 
+type ContentType = "article" | "forum" | "weixin" | "jina";
+
 export default function Home() {
   const [url, setUrl] = useState('');
   const [outputFormat, setOutputFormat] = useState('text');
@@ -79,6 +81,36 @@ export default function Home() {
       await navigator.clipboard.writeText(result.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const getTypeText = (type: ContentType) => {
+    switch (type) {
+      case "article":
+        return "文章";
+      case "forum":
+        return "论坛";
+      case "weixin":
+        return "微信";
+      case "jina":
+        return "AI提取";  // 或者 "Jina提取"
+      default:
+        return type;
+    }
+  };
+
+  const getTypeIcon = (type: ContentType) => {
+    switch (type) {
+      case "article":
+        return "📄";
+      case "forum":
+        return "💬";
+      case "weixin":
+        return "💚";
+      case "jina":
+        return "🤖";  // 使用机器人图标表示AI提取
+      default:
+        return "📝";
     }
   };
 

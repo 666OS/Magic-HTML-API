@@ -1,6 +1,6 @@
 # magic-html-api
 
-一个智能的网页内容提取API服务，基于magic-html和jina-ai/reader。
+一个智能的网页内容提取API服务，基于magic-html和jina-ai/reader。支持多种内容类型（文章/论坛/微信/知乎），多种输出格式（文本/Markdown/HTML）。只保留主要文章内容，使AI能够更好地理解和分析文本。
 
 ## 功能特点
 
@@ -10,6 +10,18 @@
 - ⚡ 异步处理，响应迅速
 - 🚀 部署在Vercel上，免费使用
 - 🤖 自动降级处理：当默认提取失败时自动使用jina-ai/reader
+
+## 🔗 在线演示
+
+访问 [https://magic-html-api.vercel.app](https://magic-html-api.vercel.app) 体验在线版本。
+
+一键部署：[![Vercel Deployment](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/eggacheb/Magic-HTML-API)
+
+
+![image](https://github.com/user-attachments/assets/6ac7637c-909a-47c1-b756-9e7d93c466e3)
+![image](https://github.com/user-attachments/assets/3ddacaf3-8fbe-4ab5-a306-e81fdc2a2152)
+![image](https://github.com/user-attachments/assets/03637a58-6870-4101-b350-785a3f36bed3)
+
 
 ## API使用
 

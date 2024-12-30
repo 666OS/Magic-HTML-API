@@ -10,34 +10,10 @@ import chardet
 app = FastAPI()
 extractor = GeneralExtractor()
 
-# 更新默认请求头
-DEFAULT_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0',
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'cache-control': 'max-age=0',
-    'sec-ch-ua': '"Not)A;Brand";v="99", "Microsoft Edge";v="127", "Chromium";v="127"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'same-origin',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1'
-}
-
 async def fetch_url(url: str) -> str:
-    async with httpx.AsyncClient(
-        verify=False,
-        follow_redirects=True,
-        cookies={},
-        timeout=30.0
-    ) as client:
+    async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(
-                url,
-                headers=DEFAULT_HEADERS
-            )
+            response = await client.get(url)
             response.raise_for_status()
             
             # 处理响应编码
@@ -64,26 +40,6 @@ async def fetch_url(url: str) -> str:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error fetching URL: {str(e)}")
 
-def clean_markdown(text: str) -> str:
-    """
-    清理和优化markdown文本
-    
-    Args:
-        text: 原始markdown文本
-        
-    Returns:
-        清理后的markdown文本
-    """
-    # 移除多余的空行
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    # 移除行首尾的空格
-    text = '\n'.join(line.strip() for line in text.split('\n'))
-    # 移除不必要的标记符号
-    text = re.sub(r'={3,}', '', text)
-    # 优化图片链接格式
-    text = re.sub(r'!\[\]\((.*?)\)', r'![图片](\1)', text)
-    return text.strip()
-
 def convert_content(html: str, output_format: str) -> str:
     """
     将HTML内容转换为指定格式
@@ -101,8 +57,14 @@ def convert_content(html: str, output_format: str) -> str:
     if output_format == "html":
         return html
     elif output_format == "markdown":
-        markdown = md(html)
-        return clean_markdown(markdown)
+        return md(html, 
+                 heading_style="ATX",  # 使用 # 风格的标题
+                 bullets="*",  # 统一使用 * 作为列表符号
+                 autolinks=True,  # 启用自动链接
+                 code_language="",  # 保持代码块的语言标记
+                 escape_asterisks=False,  # 不转义文本中的星号
+                 escape_underscores=False,  # 不转义下划线
+                 newline_style="SPACES")  # 使用标准markdown换行方式
     elif output_format == "text":
         soup = BeautifulSoup(html, 'html.parser')
         return soup.get_text(separator='\n', strip=True)
@@ -168,7 +130,7 @@ def detect_html_type(html: str, url: str) -> str:
 # 添加jina.ai提取函数
 async def fetch_from_jina(url: str) -> str:
     """
-    使用jina.ai服务提取内容
+    使用jina.ai服务提取内容,最多等待15秒
     
     Args:
         url: 目标网页URL
@@ -177,7 +139,7 @@ async def fetch_from_jina(url: str) -> str:
         提取的内容
     """
     jina_url = f"https://r.jina.ai/{url}"
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(jina_url)
         response.raise_for_status()
         return response.text

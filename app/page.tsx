@@ -3,6 +3,17 @@
 import { useState } from 'react';
 import { ArrowRight, Copy, Check, Github, MessageSquare, Volume2 } from 'lucide-react';
 
+interface CachedResult {
+  content: string;
+  format: string;
+}
+
+interface ResultCache {
+  [key: string]: {
+    [format: string]: CachedResult;
+  };
+}
+
 export default function Home() {
   const [url, setUrl] = useState('');
   const [outputFormat, setOutputFormat] = useState('text');
@@ -10,9 +21,16 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [cache, setCache] = useState<ResultCache>({});
 
   const handleExtract = async (format = outputFormat) => {
     try {
+      // 检查缓存
+      if (cache[url]?.[format]) {
+        setResult(cache[url][format]);
+        return;
+      }
+
       setLoading(true);
       setError('');
       setResult(null);
@@ -23,6 +41,15 @@ export default function Home() {
       if (!response.ok) {
         throw new Error(data.error || '提取内容失败');
       }
+
+      // 更新缓存
+      setCache(prevCache => ({
+        ...prevCache,
+        [url]: {
+          ...(prevCache[url] || {}),
+          [format]: data
+        }
+      }));
 
       setResult(data);
     } catch (err: any) {
@@ -37,6 +64,14 @@ export default function Home() {
     if (result) {
       await handleExtract(format);
     }
+  };
+
+  const handleUrlChange = (newUrl: string) => {
+    setUrl(newUrl);
+    // 当URL改变时，清除所有结果和缓存
+    setResult(null);
+    setError('');
+    setCache({});  // 清除所有缓存
   };
 
   const handleCopy = async () => {
@@ -121,7 +156,7 @@ export default function Home() {
                 <input
                   type="url"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="输入网页URL，例如: https://example.com"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900 placeholder-gray-400"
                 />

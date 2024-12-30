@@ -5,20 +5,19 @@ import { ArrowRight, Copy, Check, Github, MessageSquare, Volume2 } from 'lucide-
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [htmlType, setHtmlType] = useState('article');
   const [outputFormat, setOutputFormat] = useState('text');
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const handleExtract = async () => {
+  const handleExtract = async (format = outputFormat) => {
     try {
       setLoading(true);
       setError('');
       setResult(null);
 
-      const response = await fetch(`/api/extract?url=${encodeURIComponent(url)}&html_type=${htmlType}&output_format=${outputFormat}`);
+      const response = await fetch(`/api/extract?url=${encodeURIComponent(url)}&output_format=${format}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -30,6 +29,13 @@ export default function Home() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFormatChange = async (format: string) => {
+    setOutputFormat(format);
+    if (result) {
+      await handleExtract(format);
     }
   };
 
@@ -120,36 +126,21 @@ export default function Home() {
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900 placeholder-gray-400"
                 />
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">内容类型</label>
-                    <select
-                      value={htmlType}
-                      onChange={(e) => setHtmlType(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    >
-                      <option value="article">文章</option>
-                      <option value="forum">论坛</option>
-                      <option value="weixin">微信</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">输出格式</label>
-                    <select
-                      value={outputFormat}
-                      onChange={(e) => setOutputFormat(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    >
-                      <option value="text">纯文本</option>
-                      <option value="markdown">Markdown</option>
-                      <option value="html">HTML</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">输出格式</label>
+                  <select
+                    value={outputFormat}
+                    onChange={(e) => handleFormatChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
+                  >
+                    <option value="text">纯文本</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="html">HTML</option>
+                  </select>
                 </div>
                 
                 <button
-                  onClick={handleExtract}
+                  onClick={() => handleExtract()}
                   disabled={loading || !url}
                   className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-700 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-medium shadow-lg shadow-blue-200 hover:shadow-xl disabled:shadow-none"
                 >
@@ -167,18 +158,36 @@ export default function Home() {
               {/* API使用说明 */}
               <div className="mt-8 pt-8 border-t border-gray-100" id="api">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">API 快速上手</h4>
-                <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-3 font-mono text-sm border border-gray-100">
-                  <span className="flex-1 overflow-x-auto whitespace-nowrap text-gray-600">
-                    GET /api/extract?url=https://example.com&html_type=article&output_format=text
-                  </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText('/api/extract?url=https://example.com&html_type=article&output_format=text');
-                    }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                <div className="space-y-4">
+                  <div>
+                    <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-3 font-mono text-sm border border-gray-100">
+                      <span className="flex-1 overflow-x-auto whitespace-nowrap text-gray-600">
+                        GET /api/extract?url=https://example.com
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText('/api/extract?url=https://example.com');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="mt-4 text-sm text-gray-600">
+                      <p className="mb-2">参数说明：</p>
+                      <ul className="space-y-2 list-disc pl-5">
+                        <li><code className="text-blue-600">url</code>: 要提取内容的网页地址（必需）</li>
+                        <li>
+                          <code className="text-blue-600">output_format</code>: 输出格式（可选，默认为text）
+                          <ul className="mt-1 space-y-1 list-none pl-5">
+                            <li>• text: 纯文本格式</li>
+                            <li>• markdown: Markdown格式</li>
+                            <li>• html: HTML格式</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -212,8 +221,12 @@ export default function Home() {
                     )}
                   </button>
                 </div>
-                <div className={`prose prose-gray max-w-none ${outputFormat === 'html' ? 'whitespace-pre-wrap font-mono text-sm' : ''}`}>
-                  {result.content}
+                <div className={`prose prose-gray max-w-none max-h-[600px] overflow-y-auto ${
+                  outputFormat === 'html' ? 'whitespace-pre-wrap font-mono text-sm' : ''
+                }`}>
+                  <div className="break-words whitespace-pre-wrap">
+                    {result.content}
+                  </div>
                 </div>
               </div>
             )}

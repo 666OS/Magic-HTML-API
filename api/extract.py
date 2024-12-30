@@ -10,36 +10,63 @@ import chardet
 app = FastAPI()
 extractor = GeneralExtractor()
 
+# 更新默认请求头
+DEFAULT_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0',
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    'cache-control': 'max-age=0',
+    'sec-ch-ua': '"Not)A;Brand";v="99", "Microsoft Edge";v="127", "Chromium";v="127"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'same-origin',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1'
+}
+
 async def fetch_url(url: str) -> str:
-    async with httpx.AsyncClient() as client:
+    # 配置httpx客户端
+    async with httpx.AsyncClient(
+        verify=False,
+        follow_redirects=True,
+        cookies={},  # 添加cookie支持
+        timeout=30.0
+    ) as client:
         try:
-            response = await client.get(url)
+            # 设置referrer
+            headers = DEFAULT_HEADERS.copy()
+            if 'zhihu.com' in url:
+                headers['referrer'] = 'https://www.zhihu.com/'
+                headers['referrerPolicy'] = 'no-referrer-when-downgrade'
+            
+            response = await client.get(
+                url,
+                headers=headers
+            )
             response.raise_for_status()
             
-            # 首先尝试从响应头获取编码
+            # 处理响应编码
             content_type = response.headers.get('content-type', '').lower()
             if 'charset=' in content_type:
                 try:
-                    # 从Content-Type中提取charset
                     charset = content_type.split('charset=')[-1].split(';')[0]
                     return response.content.decode(charset)
                 except:
                     pass
             
-            # 如果响应头中没有编码信息，或解码失败，尝试直接解码
+            # 尝试不同的编码方案
             try:
                 return response.content.decode('utf-8')
             except UnicodeDecodeError:
-                # 如果UTF-8解码失败，尝试检测编码
                 content = response.content
                 detected = chardet.detect(content)
                 encoding = detected['encoding']
                 
-                # 如果是GB2312或GBK，使用GB18030
                 if encoding and encoding.lower() in ['gb2312', 'gbk']:
                     encoding = 'gb18030'
                 
-                # 使用检测到的编码解码内容
                 return content.decode(encoding or 'utf-8')
             
         except Exception as e:
